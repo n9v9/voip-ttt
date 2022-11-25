@@ -27,3 +27,11 @@ Build the client:
 cd ./cmd/vt-client
 go build
 ```
+
+## TODO
+
+-   Better build instructions
+-   Replace `chan_sip.so` with `chan_pjsip.so`
+-   Use the heartbeat webhook to detect when the client hung up the phone
+-   Rewrite `ARCHITECTURE.md`
+-   Containerize the whole application, or at least asterisk?
