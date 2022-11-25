@@ -37,7 +37,8 @@ type webSocketData struct {
 }
 
 type dataVerificationCode struct {
-	Code VerificationCode `json:"code"`
+	Code            VerificationCode `json:"code"`
+	CallPhoneNumber PhoneNumber      `json:"callPhoneNumber"`
 }
 
 type dataWaitForOpponent struct {
@@ -73,11 +74,12 @@ type webSocketClient struct {
 }
 
 // sendCode sends the verification code to the client.
-func (wsc *webSocketClient) sendCode(code VerificationCode) error {
+func (wsc *webSocketClient) sendCode(code VerificationCode, callPhoneNumber PhoneNumber) error {
 	return wsc.sendData(webSocketData{
 		Type: messageSendCode,
 		Data: &dataVerificationCode{
-			Code: code,
+			Code:            code,
+			CallPhoneNumber: callPhoneNumber,
 		},
 	})
 }
@@ -175,11 +177,14 @@ type webSocketManager struct {
 	// Clients that have verified their code and are now waiting
 	// to be matched with an opponent.
 	lookingForMatch chan *webSocketClient
+
+	// Phone number that is sent to the client, so the client knows which number to call.
+	callPhoneNumber PhoneNumber
 }
 
 // newManager matches two web socket connections so that they can
 // play against each other.
-func newManager() *webSocketManager {
+func newManager(callPhoneNumber PhoneNumber) *webSocketManager {
 	return &webSocketManager{
 		codeCounter:         atomic.Uint64{},
 		pendingAudioConns:   map[PhoneNumber]*websocket.Conn{},
@@ -187,6 +192,7 @@ func newManager() *webSocketManager {
 		waitingForCode:      map[VerificationCode]*webSocketClient{},
 		waitingForCodeMu:    new(sync.Mutex),
 		lookingForMatch:     make(chan *webSocketClient),
+		callPhoneNumber:     callPhoneNumber,
 	}
 }
 
@@ -214,7 +220,7 @@ func (wsm *webSocketManager) handleClient(conn *websocket.Conn) {
 	client.log.Info().Msg("Handle new client")
 
 	code := VerificationCode(wsm.codeCounter.Add(1))
-	if err := client.sendCode(code); err != nil {
+	if err := client.sendCode(code, wsm.callPhoneNumber); err != nil {
 		client.log.Err(err).Uint64("code", uint64(code)).Msg("Failed to send code to client")
 		_ = client.conn.Close()
 		return

@@ -77,7 +77,10 @@
                     <ol class="block is-size-4">
                         <li>
                             Use your phone to call
-                            <span class="has-text-link">&lt;YOUR NUMBER HERE&gt;</span>
+                            <span
+                                class="has-text-link"
+                                id="call-phone-number"
+                            ></span>
                         </li>
                         <li>
                             When the call is accepted, enter the code
@@ -231,6 +234,10 @@
             html.querySelector("#code-to-enter").textContent = code;
         }
 
+        function setCallPhoneNumber(html, phoneNumber) {
+            html.querySelector("#call-phone-number").textContent = phoneNumber;
+        }
+
         function selectDigit(digit, isPlayer) {
             const field = document.body.querySelector(`#field-${digit}`);
             const classPlayerBackground = "has-background-success-light";
@@ -324,6 +331,7 @@
             render() {
                 const html = this.getTmpl();
                 setCodeToEnter(html, this.state.code);
+                setCallPhoneNumber(html, this.state.callPhoneNumber);
                 this.container.appendChild(html);
             }
         }
@@ -505,6 +513,7 @@
                 switch (type) {
                     case "SEND_CODE":
                         this.state.code = data.code;
+                        this.state.callPhoneNumber = data.callPhoneNumber;
                         this.showInstructionScreen();
                         break;
                     case "WAIT_FOR_OPPONENT":

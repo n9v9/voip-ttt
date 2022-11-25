@@ -21,8 +21,8 @@ type Server struct {
 
 // NewServer returns an initialized instance whose APIs will
 // listen on the given addresses.
-func NewServer(publicAPIAddr, privateAPIAddr string) *Server {
-	wsManager := newManager()
+func NewServer(callPhoneNumber PhoneNumber, publicAPIAddr, privateAPIAddr string) *Server {
+	wsManager := newManager(callPhoneNumber)
 	return &Server{
 		publicAPI:      newPublic(wsManager),
 		privateAPI:     newPrivate(wsManager),

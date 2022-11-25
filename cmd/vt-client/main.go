@@ -35,8 +35,8 @@ func main() {
 
 func rootCmd() *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:   "vt-server",
-		Short: "vt-server is enables you to play Tic-Tac-Toe over VoIP",
+		Use:   "vt-client",
+		Short: "vt-client connects to the vt-server application to play Tic-Tac-Toe over VoIP",
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 			if err := run(); err != nil {
