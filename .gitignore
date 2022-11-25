@@ -1,0 +1,4 @@
+.idea/
+voip-ttt
+cmd/vt-server/vt-server
+cmd/vt-client/vt-client

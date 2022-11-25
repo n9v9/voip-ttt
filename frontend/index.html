@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Tic-Tac-Toe over VoIP</title>
+        <link rel="stylesheet" type="text/css" href="css/bulma.min.css" />
+        <style>
+            @media screen and (max-width: 768px) {
+                :root {
+                    --game-width: 300px !important;
+                    --game-height: 300px !important;
+                }
+            }
+            :root {
+                --game-width: 600px;
+                --game-height: 600px;
+            }
+            #game-info {
+                width: var(--game-width);
+            }
+            #board {
+                width: var(--game-width);
+                height: var(--game-height);
+                display: grid;
+                grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+                border: 2px solid black;
+            }
+            .board-field {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                border: 1px solid black;
+                transition: font-size 500ms, color 500ms;
+            }
+            .board-field:hover {
+                cursor: default;
+                user-select: none;
+            }
+        </style>
+    </head>
+
+    <body>
+        <section class="hero is-link">
+            <div class="hero-body">
+                <p class="title is-1">Tic-Tac-Toe over VoIP</p>
+            </div>
+        </section>
+
+        <div id="app"></div>
+
+        <template id="tmpl-welcome">
+            <section class="section">
+                <div class="container">
+                    <p class="has-text-centered title">
+                        Play Tic-Tac-Toe right through your phone
+                    </p>
+                    <div class="has-text-centered">
+                        <button
+                            id="btn-play"
+                            class="button is-primary is-large"
+                        >
+                            PLAY
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </template>
+
+        <template id="tmpl-instruction">
+            <section class="section">
+                <div class="container has-text-centered">
+                    <div class="block">
+                        <p class="title">Three steps and you're ready to go</p>
+                    </div>
+                    <ol class="block is-size-4">
+                        <li>
+                            Use your phone to call
+                            <span class="has-text-link">&lt;YOUR NUMBER HERE&gt;</span>
+                        </li>
+                        <li>
+                            When the call is accepted, enter the code
+                            <span
+                                id="code-to-enter"
+                                class="has-text-link"
+                            ></span>
+                            and submit by pressing
+                            <span class="has-text-link">#</span>
+                        </li>
+                        <li>Wait to be matched with another player</li>
+                        <li>
+                            When it's your turn, enter a single digit and submit
+                            it by pressing
+                            <span class="has-text-link">#</span>
+                        </li>
+                    </ol>
+                    <p class="block is-size-3">🥳 Have Fun 🎉</p>
+                    <p class="is-size-5 has-text-weight-bold has-text-info">
+                        You can speak with your opponent. If you don't want to,
+                        mute
+                        <i class="has-background-info-light">your phone's</i>
+                        microphone.
+                    </p>
+                    <p class="is-size-5 has-text-weight-bold has-text-info">
+                        Audio will be played through
+                        <i class="has-background-info-light">this browser tab</i
+                        >, not your phone's speaker.
+                    </p>
+                </div>
+            </section>
+        </template>
+
+        <template id="tmpl-wait-for-opponent">
+            <section class="section">
+                <div class="container">
+                    <div id="game-info" class="m-auto">
+                        <p class="title">
+                            Game Room
+                            <span
+                                id="game-room-name"
+                                class="has-text-link"
+                            ></span>
+                        </p>
+                        <div class="is-size-5">
+                            <div class="block">
+                                <p>
+                                    You: <span id="player-phone-number"></span>
+                                </p>
+                            </div>
+                            <div class="block">
+                                <p>Waiting for your opponent to connect</p>
+                            </div>
+                            <div class="class">
+                                <progress
+                                    class="progress is-small is-primary"
+                                ></progress>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </template>
+
+        <template id="tmpl-game">
+            <section class="section">
+                <div class="container">
+                    <div id="game-info" class="m-auto">
+                        <p class="title">
+                            Game Room
+                            <span
+                                id="game-room-name"
+                                class="has-text-link"
+                            ></span>
+                        </p>
+                        <div class="is-size-5">
+                            <div class="block">
+                                <p>
+                                    You: <span id="player-phone-number"></span>
+                                </p>
+                                <p>
+                                    Opponent:
+                                    <span id="opponent-phone-number"></span>
+                                </p>
+                            </div>
+                            <div class="block">
+                                <p
+                                    id="current-turn-info"
+                                    class="has-text-weight-bold"
+                                ></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        id="board"
+                        class="mt-5 ml-auto mr-auto is-size-1 has-text-weight-bold has-text-link has-background-link-light"
+                    >
+                        <div id="field-1" class="board-field">1</div>
+                        <div id="field-2" class="board-field">2</div>
+                        <div id="field-3" class="board-field">3</div>
+                        <div id="field-4" class="board-field">4</div>
+                        <div id="field-5" class="board-field">5</div>
+                        <div id="field-6" class="board-field">6</div>
+                        <div id="field-7" class="board-field">7</div>
+                        <div id="field-8" class="board-field">8</div>
+                        <div id="field-9" class="board-field">9</div>
+                    </div>
+                </div>
+            </section>
+        </template>
+
+        <template id="tmpl-game-done">
+            <section class="section">
+                <div class="container has-text-centered">
+                    <p id="game-draw" class="title">
+                        The game ended in a draw! 😐
+                    </p>
+                    <p id="game-won" class="title">🎉 You Won! ✨</p>
+                    <p id="game-lost" class="title">😥 You Lost! ️☹️</p>
+                    <div class="has-text-centered">
+                        <button
+                            id="btn-play-again"
+                            class="button is-primary is-large"
+                        >
+                            PLAY AGAIN
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </template>
+    </body>
+
+    <script src="./js/pcm-player.min.js"></script>
+
+    <script>
+        function setPlayPhoneNumber(html, phoneNumber) {
+            html.querySelector("#player-phone-number").textContent =
+                phoneNumber;
+        }
+
+        function setOpponentPhoneNumber(html, phoneNumber) {
+            html.querySelector("#opponent-phone-number").textContent =
+                phoneNumber;
+        }
+
+        function setGameRoomName(html, gameRoomName) {
+            html.querySelector("#game-room-name").textContent = gameRoomName;
+        }
+
+        function setCodeToEnter(html, code) {
+            html.querySelector("#code-to-enter").textContent = code;
+        }
+
+        function selectDigit(digit, isPlayer) {
+            const field = document.body.querySelector(`#field-${digit}`);
+            const classPlayerBackground = "has-background-success-light";
+            const classOpponentBackground = "has-background-danger-light";
+            const classPlayerColor = "has-text-success";
+            const classOpponentColor = "has-text-danger";
+            const old = field.style.fontSize;
+            field.style.fontSize = "2em";
+            setTimeout(() => {
+                field.style.fontSize = old;
+                field.classList.add(
+                    isPlayer ? classPlayerBackground : classOpponentBackground
+                );
+                field.classList.add(
+                    isPlayer ? classPlayerColor : classOpponentColor
+                );
+            }, 500);
+        }
+
+        function setCurrentTurnInfo(isPlayer) {
+            const currentTurn =
+                document.body.querySelector("#current-turn-info");
+            const classPlayerColor = "has-text-success";
+            const classOpponentColor = "has-text-danger";
+
+            if (isPlayer) {
+                currentTurn.classList.remove(classOpponentColor);
+                currentTurn.classList.add(classPlayerColor);
+                currentTurn.textContent = "Your Turn";
+            } else {
+                currentTurn.classList.remove(classPlayerColor);
+                currentTurn.classList.add(classOpponentColor);
+                currentTurn.textContent = "Your Opponent's Turn";
+            }
+        }
+
+        function createButtonClickedPromise(id) {
+            return new Promise((resolve, _) => {
+                const button = document.body.querySelector(id);
+                button.addEventListener("click", async () => {
+                    button.disabled = true;
+                    button.classList.add("is-loading");
+                    resolve();
+                });
+            });
+        }
+
+        function hide(...elements) {
+            elements.forEach(x => (x.style.display = "none"));
+        }
+
+        function show(element) {
+            element.style.display = "block";
+        }
+
+        class WelcomeScreen {
+            constructor(container, state) {
+                this.container = container;
+                this.state = state;
+                this.getTmpl = () =>
+                    document
+                        .querySelector("#tmpl-welcome")
+                        .content.cloneNode(true);
+            }
+
+            setupPlayButton() {
+                this.playButtonClickPromise =
+                    createButtonClickedPromise("#btn-play");
+            }
+
+            render() {
+                this.container.appendChild(this.getTmpl());
+                this.setupPlayButton();
+            }
+
+            async playButtonClicked() {
+                await this.playButtonClickPromise;
+            }
+        }
+
+        class InstructionScreen {
+            constructor(container, state) {
+                this.container = container;
+                this.state = state;
+                this.getTmpl = () =>
+                    document
+                        .querySelector("#tmpl-instruction")
+                        .content.cloneNode(true);
+            }
+
+            render() {
+                const html = this.getTmpl();
+                setCodeToEnter(html, this.state.code);
+                this.container.appendChild(html);
+            }
+        }
+
+        class WaitForOpponentScreen {
+            constructor(container, state) {
+                this.container = container;
+                this.state = state;
+                this.getTmpl = () =>
+                    document
+                        .querySelector("#tmpl-wait-for-opponent")
+                        .content.cloneNode(true);
+            }
+
+            render() {
+                const html = this.getTmpl();
+                setGameRoomName(html, this.state.gameRoomName);
+                setPlayPhoneNumber(html, this.state.playerPhoneNumber);
+                this.container.appendChild(html);
+            }
+        }
+
+        class GameScreen {
+            constructor(container, state) {
+                this.container = container;
+                this.state = state;
+                this.getTmpl = () =>
+                    document
+                        .querySelector("#tmpl-game")
+                        .content.cloneNode(true);
+            }
+
+            render() {
+                const html = this.getTmpl();
+                setPlayPhoneNumber(html, this.state.playerPhoneNumber);
+                setOpponentPhoneNumber(html, this.state.opponentPhoneNumber);
+                setGameRoomName(html, this.state.gameRoomName);
+                this.container.appendChild(html);
+            }
+        }
+
+        class GameDoneScreen {
+            constructor(container, state) {
+                this.container = container;
+                this.state = state;
+                this.getTmpl = () =>
+                    document
+                        .querySelector("#tmpl-game-done")
+                        .content.cloneNode(true);
+            }
+
+            setupPlayAgainButton() {
+                this.playAgainButtonClickPromise =
+                    createButtonClickedPromise("#btn-play-again");
+            }
+
+            render() {
+                this.container.prepend(this.getTmpl());
+                this.setupPlayAgainButton();
+
+                const draw = document.querySelector("#game-draw");
+                const won = document.querySelector("#game-won");
+                const lost = document.querySelector("#game-lost");
+
+                hide(draw, won, lost);
+
+                if (!this.state.hasWinner) {
+                    show(draw);
+                } else if (this.state.isPlayerWinner) {
+                    show(won);
+                } else {
+                    show(lost);
+                }
+            }
+
+            async playAgainButtonClicked() {
+                await this.playAgainButtonClickPromise;
+            }
+        }
+
+        class App {
+            constructor() {
+                this.state = {
+                    code: "",
+                    gameRoomName: "",
+                    playerPhoneNumber: "",
+                    opponentPhoneNumber: "",
+                    gameIsDone: false,
+                    hasWinner: null,
+                    isPlayerWinner: null,
+                };
+                this.container = document.querySelector("#app");
+                this.welcomeScreen = new WelcomeScreen(
+                    this.container,
+                    this.state
+                );
+                this.instructionScreen = new InstructionScreen(
+                    this.container,
+                    this.state
+                );
+                this.waitForOpponentScreen = new WaitForOpponentScreen(
+                    this.container,
+                    this.state
+                );
+                this.gameScreen = new GameScreen(this.container, this.state);
+                this.gameDoneScreen = new GameDoneScreen(
+                    this.container,
+                    this.state
+                );
+            }
+
+            async showWelcomeScreen() {
+                this.clearScreen();
+                this.welcomeScreen.render();
+                await this.welcomeScreen.playButtonClicked();
+                this.initWebSockets();
+            }
+
+            showInstructionScreen() {
+                this.clearScreen();
+                this.instructionScreen.render();
+            }
+
+            showWaitForOpponentScreen() {
+                this.clearScreen();
+                this.waitForOpponentScreen.render();
+            }
+
+            showGameScreen() {
+                this.clearScreen();
+                this.gameScreen.render();
+            }
+
+            async showGameDoneScreen() {
+                this.ws.close();
+                this.gameDoneScreen.render();
+                await this.gameDoneScreen.playAgainButtonClicked();
+                this.initWebSockets();
+            }
+
+            clearScreen() {
+                this.container.textContent = "";
+            }
+
+            initWebSockets() {
+                this.ws = new WebSocket(`ws://${location.host}/ws`);
+                // Game messages are text frames and audio messages are binary frames.
+                this.ws.binaryType = "arraybuffer";
+
+                this.ws.onopen = () => console.info("ws connection open");
+                this.ws.onclose = () => console.info("ws connection closed");
+                this.ws.onerror = err => console.error("ws error", err);
+                this.ws.onmessage = this.onMessage.bind(this);
+
+                this.audioPlayer = new PCMPlayer({
+                    encoding: "16bitInt",
+                    channels: 1,
+                    sampleRate: 8000,
+                    flushingTime: 50,
+                });
+            }
+
+            onMessage(message) {
+                // Check if we receive a binary audio frame.
+                if (message.data instanceof ArrayBuffer) {
+                    const data = new Uint8Array(message.data);
+                    console.info(
+                        `received audio frame with ${data.byteLength} bytes`
+                    );
+                    this.audioPlayer.feed(data);
+                    return;
+                }
+
+                // We received some other, game relevant, text frame.
+                const packet = JSON.parse(message.data);
+                console.info("received data", packet);
+                const { type, data } = packet;
+
+                switch (type) {
+                    case "SEND_CODE":
+                        this.state.code = data.code;
+                        this.showInstructionScreen();
+                        break;
+                    case "WAIT_FOR_OPPONENT":
+                        this.state.gameRoomName = data.gameRoomName;
+                        this.state.playerPhoneNumber = data.playerPhoneNumber;
+                        this.showWaitForOpponentScreen();
+                        break;
+                    case "OPPONENT_READY":
+                        this.state.opponentPhoneNumber =
+                            data.opponentPhoneNumber;
+                        this.showGameScreen();
+                        setCurrentTurnInfo(data.playerHasFirstTurn);
+                        break;
+                    case "TURN_INFO":
+                        selectDigit(data.selectedDigit, data.isPlayer);
+                        setCurrentTurnInfo(!data.isPlayer);
+                        break;
+                    case "GAME_DONE":
+                        this.state.gameIsDone = true;
+                        this.state.hasWinner = data.hasWinner;
+                        this.state.isPlayerWinner = data.isPlayerWinner;
+                        this.showGameDoneScreen();
+                        break;
+                }
+            }
+
+            onAudioMessage(message) {
+                const data = new Uint8Array(event.data);
+                console.info(
+                    `ws audio data: received ${data.byteLength} bytes`
+                );
+                this.audioPlayer.feed(data);
+            }
+        }
+
+        const app = new App();
+        app.showWelcomeScreen();
+    </script>
+</html>
